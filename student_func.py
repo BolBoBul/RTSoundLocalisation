@@ -11,15 +11,19 @@ import matplotlib.pyplot as plt
 
 def create_sine_wave(f, A, fs, N):
     
-    # 
+    out = A/2 * np.sin(2 * np.pi * f * np.linspace(0, N/fs, N))
 
     return out
 
 # call and test your function here #
-fs =
-N = 
-freq = 
-amplitude =
+fs = 44100
+N = 8000
+freq = 20
+amplitude = 8
+
+
+your_signal = create_sine_wave(freq, amplitude, fs, N)
+plt.plot(your_signal)
 
 
 # %%
@@ -28,14 +32,16 @@ import scipy.io.wavfile as wf
 
 def read_wavefile(path):
 
-    # your code here #
+    out = wf.read(path)
 
     return out
 
 # call and test your function here #
-LocateClaps = "path/to/LocateClaps/folder"
+LocateClaps = "resources/LocateClaps/"
 files = glob(f"{LocateClaps}/*.wav")
-
+# the second part of the array represents the value and the first element is the sampling rate
+your_wave = read_wavefile(files[0])[1]
+plt.plot(your_wave)
 
 # %% [markdown]
 # ### 1.2 Buffering
@@ -43,21 +49,32 @@ files = glob(f"{LocateClaps}/*.wav")
 # %%
 from collections import deque
 
+# When the buffer is full, the oldest element is removed
 def create_ringbuffer(maxlen):
     
-    # your code here #
+    out = deque(maxlen=maxlen)
 
     return out
 
 # call and test your function here #
-stride = 
-maxlen = 
+stride = 1
+maxlen = 750
 
-# reading your signal as a stream:
+your_buffer = create_ringbuffer(maxlen)
+
+'''# reading your signal as a stream:
 for i, sample in enumerate(your_signal):
     your_buffer.append(sample)
+    
+'''
+def display_buffer_after_X_seconds(fs, seconds, maxlen, signal):
+    buffer = create_ringbuffer(maxlen)
+    for i in range(min(len(signal), round(fs*seconds))):
+        buffer.append(signal[i])
+    plt.plot(buffer)
 
-    # your code here #
+display_buffer_after_X_seconds(fs, 1, maxlen, your_wave)
+
 
 # %% [markdown]
 # ### 1.3 Pre-processing
@@ -65,34 +82,94 @@ for i, sample in enumerate(your_signal):
 
 # %%
 def normalise(s):
+    # we divide the signal by its maximum value to get a signal between -1 and 1
     
-    # your code here #
+    out = s / np.max(np.abs(s))
 
     return out
 
 # call and test your function here #
+plt.plot(your_signal, 'r')
+plt.plot(normalise(your_signal), 'b')
+plt.show()
 
 # %% [markdown]
 # #### 1.3.2 Downsampling
 
 # %%
 ## 1 - spectral analysis via spectrogram
-plt.specgram( , Fs= )
-plt.title("Spectrogram")
+# The y-axis represents the frequency, the x-axis the time and the color the amplitude (in dB)
+
+plt.specgram(x=your_wave, Fs=fs, NFFT=1024, noverlap=512, cmap="inferno")
+plt.title("Spectrogram of the one-clap sound")
+plt.xlabel("Time (s)")
+plt.ylabel("Frequency (Hz)")
+plt.colorbar(label="Intensity (dB)")
 plt.show()
 
+# the x-axis is normalised
+t = np.linspace(0, len(your_wave)/fs, len(your_wave))
+plt.plot(t, your_wave)
+
+"""# Initialise the subplot function using number of rows and columns
+figure, axis = plt.subplots(1, 3)
+
+# For Sine Function
+axis[0].specgram(your_wave, Fs=8000, cmap="inferno")
+axis[0].set_title("Spectogram at 8kHz")
+
+# For Cosine Function
+axis[1].specgram(your_wave, Fs=16000, cmap="inferno")
+axis[1].set_title("Spectogram at 16kHz")
+
+# For Tangent Function
+axis[2].specgram(your_wave, Fs=24000, cmap="inferno")
+axis[2].set_title("Spectogram at 24kHz")
+
+
+# Combine all the operations and display
+plt.show()"""
+
 ## 2 - Anti-aliasing filter synthesis
+# %%
+import scipy.signal as sc
+from scipy.signal import filtfilt
+
 def create_filter_cheby(wp, ws, gpass, gstop, fs):
 
-    # your code here #
+    B, A = sc.iirdesign(wp, ws, gpass, gstop, fs=fs, analog=False, ftype='cheby2', output='ba')
 
     return B, A
 
 def create_filter_cauer(wp, ws, gpass, gstop, fs):
 
-    # your code here #
+    B, A = sc.iirdesign(wp, ws, gpass, gstop, fs=fs, analog=False, ftype='ellip', output='ba')
 
     return B, A
+
+sine1 = create_sine_wave(8500, 1000, fs, N)
+sine2 = create_sine_wave(7500, 20, fs, N)
+
+filtered_signal = filtfilt(*create_filter_cheby(8000, 9000, 1, 40, fs), x=your_wave)
+plt.plot(your_wave, 'r')
+plt.show()
+plt.plot(filtered_signal, 'yellow')
+plt.show()
+
+'''figure, axis = plt.subplots(2,3)
+
+axis[0,0]= plt.plot(sine1)
+axis[1,0]= plt.plot(sine2)
+filt_sign = filtfilt(b, a = create_filter_cheby(8000, 9000, 1, 40, fs), x=sine1)
+axis[0,1] = plt.plot(filt_sign)
+filt_sign = filtfilt(b, a = create_filter_cheby(8000, 9000, 1, 40, fs), x=sine2)
+axis[1,1] = plt.plot(filt_sign)
+filt_sign = filtfilt(b, a = create_filter_cauer(8000, 9000, 1, 40, fs), x=sine1)
+axis[0,2] = plt.plot(filt_sign)
+filt_sign = filtfilt(b, a = create_filter_cauer(8000, 9000, 1, 40, fs), x=sine2)
+axis[1,2] = plt.plot(filt_sign)'''
+
+plt.show()
 
 ## 3 - Decimation
 def downsampling(sig, B, A, M):
