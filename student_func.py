@@ -150,11 +150,11 @@ def create_filter_cauer(wp, ws, gpass, gstop, fs):
 sine1 = create_sine_wave(8500, 1000, fs, N)
 sine2 = create_sine_wave(7500, 20, fs, N)
 
-filtered_signal = filtfilt(*create_filter_cheby(8000, 9000, 1, 40, fs), x=your_wave)
+'''filtered_signal = filtfilt(*create_filter_cheby(8000, 9000, 1, 40, fs), x=your_wave)
 plt.plot(your_wave, 'r')
 plt.show()
 plt.plot(filtered_signal, 'yellow')
-plt.show()
+plt.show()'''
 
 '''figure, axis = plt.subplots(2,3)
 
@@ -172,11 +172,15 @@ axis[1,2] = plt.plot(filt_sign)'''
 plt.show()
 
 ## 3 - Decimation
-def downsampling(sig, B, A, M):
-
-    # your code here #
-
+def simple_downsampling(sig, M):
+    out = sig[::M]
     return out
+
+sine1= create_sine_wave(8500, 1000, fs, 200)
+plt.plot(sine1, 'r')
+plt.show()
+plt.plot(simple_downsampling(sine1, 3), 'b')
+plt.show()
 
 
 # call and test your function here
