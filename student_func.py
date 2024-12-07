@@ -224,14 +224,24 @@ def simple_downsampling(sig, M):
     out = sig[::M]
     return out
 
-sine1= create_sine_wave(8500, 1000, fs, 200)
-plt.plot(sine1, 'r')
-plt.show()
-plt.plot(simple_downsampling(sine1, 3), 'b')
-plt.show()
+fs=16000
+N=8000
+sinus1 = create_sine_wave(8500, 1000, fs, N)
+sinus2 = create_sine_wave(7500, 20, fs, N)
 
+your_wave1 = wf.read(files[1])[1]
+your_wave2 = wf.read(files[13])[1]
 
-# call and test your function here
+# call and test your function here #
+M = 3
+signal = sinus1 + sinus2
+downsampled_signal = simple_downsampling(signal, M)
+
+plt.plot(signal, 'orange')
+# we stretch the signal to see the difference
+plt.plot(np.linspace(0, len(signal), len(downsampled_signal)), downsampled_signal, 'b')
+plt.legend(["Original signal", "Downsampled signal"])
+
 
 # %% [markdown]
 # ### 1.4 Cross-correlation
