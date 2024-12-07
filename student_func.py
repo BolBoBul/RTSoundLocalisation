@@ -129,38 +129,93 @@ plt.show()"""
 import scipy.signal as sc
 
 def create_filter_cheby(wp, ws, gpass, gstop, fs):
+    """
+    Design a Chebyshev Type I low-pass filter.
+    
+    Parameters:
+        wp: float  - Passband edge frequency (Hz).
+        ws: float  - Stopband edge frequency (Hz).
+        gpass: float - Maximum ripple in the passband (dB).
+        gstop: float - Minimum attenuation in the stopband (dB).
+        fs: float   - Sampling frequency (Hz).
+        
+    Returns:
+        B, A: ndarray - Numerator and denominator coefficients of the filter.
+    """
 
-    B, A = sc.iirdesign(wp, ws, gpass, gstop, fs=fs, analog=False, ftype='cheby2', output='ba')
-
+    wp = wp/(fs/2)
+    ws = ws/(fs/2)
+    
+    N, Wn = sc.cheb1ord(wp, ws, gpass, gstop, fs=fs)
+    B, A = sc.cheby1(N, gpass, Wn, btype='low', fs=fs)
+    
     return B, A
 
 def create_filter_cauer(wp, ws, gpass, gstop, fs):
-
-    B, A = sc.iirdesign(wp, ws, gpass, gstop, fs=fs, analog=False, ftype='ellip', output='ba')
-
+    """
+    Design an Elliptic (Cauer) low-pass filter.
+    
+    Parameters:
+        wp: float  - Passband edge frequency (Hz).
+        ws: float  - Stopband edge frequency (Hz).
+        gpass: float - Maximum ripple in the passband (dB).
+        gstop: float - Minimum attenuation in the stopband (dB).
+        fs: float   - Sampling frequency (Hz).
+        
+    Returns:
+        B, A: ndarray - Numerator and denominator coefficients of the filter.
+    """
+    
+    wp = wp/(fs/2)
+    ws = ws/(fs/2)
+    
+    N, Wn = sc.ellipord(wp, ws, gpass, gstop, fs=fs)
+    B, A = sc.ellip(N, gpass, gstop, Wn, btype='low', fs=fs)
+    
     return B, A
 
 sine1 = create_sine_wave(8500, 1000, fs, N)
 sine2 = create_sine_wave(7500, 20, fs, N)
 
-'''filtered_signal = filtfilt(*create_filter_cheby(8000, 9000, 1, 40, fs), x=your_wave)
-plt.plot(your_wave, 'r')
-plt.show()
-plt.plot(filtered_signal, 'yellow')
-plt.show()'''
 
-'''figure, axis = plt.subplots(2,3)
+# call and test your function here #
+fs = 16000
+N = 8000
+wp = 7500
+ws = 8500
+gpass = 0.1
+gstop = 40
 
-axis[0,0]= plt.plot(sine1)
-axis[1,0]= plt.plot(sine2)
-filt_sign = filtfilt(b, a = create_filter_cheby(8000, 9000, 1, 40, fs), x=sine1)
-axis[0,1] = plt.plot(filt_sign)
-filt_sign = filtfilt(b, a = create_filter_cheby(8000, 9000, 1, 40, fs), x=sine2)
-axis[1,1] = plt.plot(filt_sign)
-filt_sign = filtfilt(b, a = create_filter_cauer(8000, 9000, 1, 40, fs), x=sine1)
-axis[0,2] = plt.plot(filt_sign)
-filt_sign = filtfilt(b, a = create_filter_cauer(8000, 9000, 1, 40, fs), x=sine2)
-axis[1,2] = plt.plot(filt_sign)'''
+# create a Chebyshev Type I low-pass filter
+B_cheby, A_cheby = create_filter_cheby(wp, ws, gpass, gstop, fs)
+# create an Elliptic (Cauer) low-pass filter
+B_cauer, A_cauer = create_filter_cauer(wp, ws, gpass, gstop, fs)
+
+# plot the frequency response of the filters
+w, h_cheby = sc.freqz(B_cheby, A_cheby)
+w, h_cauer = sc.freqz(B_cauer, A_cauer)
+
+plt.plot(w, 20 * np.log10(abs(h_cheby)), 'b')
+plt.plot(w, 20 * np.log10(abs(h_cauer)), 'r')
+plt.legend(["Chebyshev Type I", "Elliptic (Cauer)"])
+plt.title("Frequency response of the filters")
+
+# apply the filters to the signals
+sine1_cheby = sc.lfilter(B_cheby, A_cheby, create_sine_wave(8500, 1000, fs, N))
+sine1_cauer = sc.lfilter(B_cauer, A_cauer, create_sine_wave(8500, 1000, fs, N))
+
+sine2_cheby = sc.lfilter(B_cheby, A_cheby, create_sine_wave(7500, 20, fs, N))
+sine2_cauer = sc.lfilter(B_cauer, A_cauer, create_sine_wave(7500, 20, fs, N))
+
+# plot the filtered signals
+plt.plot(sine1_cheby, '#211CE3')
+plt.plot(sine1_cauer, '#1CE321')
+plt.legend(["Chebyshev Type I", "Elliptic (Cauer)"])
+plt.title("Filtered sine wave")
+# set a limit to see the difference
+plt.ylim(-0.5, 0.5)
+plt.xlim(0, 1500)
+
 
 plt.show()
 
