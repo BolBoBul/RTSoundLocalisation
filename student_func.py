@@ -252,14 +252,18 @@ import scipy.signal as sc
 import numpy as np
 
 def fftxcorr(in1, in2):
-    
-    # your code here #
+    # use np.fft.fft to compute the Fourier Transform of the input signals
+    # we apply the inverse Fourier Transform (np.fft.ifft) to the product of the Fourier Transform of in1 and the complex conjugate (np.conj) of the Fourier Transform of in2
+    out = np.fft.ifft(np.fft.fft(in1) * np.conj(np.fft.fft(in2)))
 
     return out
     
 # call and test your function here #
-
-xcorr_fftconv = sc.fftconvolve(your_signal, your_signal[::-1], 'full') # [::-1] flips the signal but you can also use np.flip()
+# Verify your implementation, compare your output with that of the function fftconvolve when computing the auto-correlation of your sine wave signal. Remember that you need to counter the flip that convolution does on the second signal
+plt.plot(fftxcorr(your_wave1, your_wave2), 'b')
+plt.plot(sc.fftconvolve(your_wave1, np.flip(your_wave2)), 'orange')
+plt.legend(["Your implementation", "sc.fftconvolve"])
+plt.show()
 
 # %% [markdown]
 # ### 1.5 Localisation
