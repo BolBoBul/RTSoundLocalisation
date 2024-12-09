@@ -280,8 +280,50 @@ plt.show()
 def TDOA(xcorr):
     
     # your code here #
-
+    # One way to measure the time-shift is to find the index of the maximum value of the  ross-correlation
+    maxIdx = np.argmax(xcorr)
+    # we know that the delay between the two signals reception is the difference between the index of the maximum value and the middle of the cross-correlation
+    out = maxIdx - len(xcorr)//2
+    
     return out
+
+# call and test your function here #
+print(f"{TDOA(fftxcorr(normalised_wave1, normalised_wave2))} samples of delay between the two signals") 
+
+# %%
+beforeProcess = {}
+afterProcess = {}
+
+def process_sample(sample):
+    # we find the first sample where the amplitude is higher than 3000
+    start = np.argmax(sample > 3000)
+    # we find the last sample where the amplitude is higher than 3000
+    end = len(sample) - np.argmax(sample[::-1] > 1000)
+    # we keep only the samples between start and end
+    out = sample[start-100:end]
+    return out
+
+for f in files:
+    beforeProcess[f] = wf.read(f)[1]
+    afterProcess[f] = process_sample(beforeProcess[f])
+    
+# find the longest signal among the processed signals
+maxlen = 0
+for f in afterProcess:
+    if len(afterProcess[f]) > maxlen:
+        maxlen = len(afterProcess[f])        
+
+# we pad the signals with zeros to have the same length
+for f in afterProcess:
+    afterProcess[f] = np.pad(afterProcess[f], (0, maxlen-len(afterProcess[f])), 'constant')
+        
+# call and test your function here #
+your_wave1 = afterProcess[files[4]]
+your_wave2 = afterProcess[files[23]]
+
+
+
+
 
 # %% [markdown]
 # #### 1.5.2 Equation system
