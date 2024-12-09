@@ -96,9 +96,7 @@ def normalise(s):
     return out
 
 # call and test your function here #
-plt.plot(your_signal, 'orange')
-plt.plot(normalise(your_signal), 'b')
-plt.legend(["Original signal", "Normalised signal"])
+plt.plot(normalise(your_wave), 'b')
 plt.show()
 
 # %% [markdown]
@@ -195,10 +193,11 @@ B_cauer, A_cauer = create_filter_cauer(wp, ws, gpass, gstop, fs)
 w, h_cheby = sc.freqz(B_cheby, A_cheby)
 w, h_cauer = sc.freqz(B_cauer, A_cauer)
 
-plt.plot(w, 20 * np.log10(abs(h_cheby)), 'b')
+"""plt.plot(w, 20 * np.log10(abs(h_cheby)), 'b')
 plt.plot(w, 20 * np.log10(abs(h_cauer)), 'r')
 plt.legend(["Chebyshev Type I", "Elliptic (Cauer)"])
 plt.title("Frequency response of the filters")
+plt.show()"""
 
 # apply the filters to the signals
 sine1_cheby = sc.lfilter(B_cheby, A_cheby, create_sine_wave(8500, 1000, fs, N))
@@ -208,8 +207,8 @@ sine2_cheby = sc.lfilter(B_cheby, A_cheby, create_sine_wave(7500, 20, fs, N))
 sine2_cauer = sc.lfilter(B_cauer, A_cauer, create_sine_wave(7500, 20, fs, N))
 
 # plot the filtered signals
-plt.plot(sine1_cheby, '#211CE3')
-plt.plot(sine1_cauer, '#1CE321')
+plt.plot(sine1_cheby, '#0000FF')
+plt.plot(sine1_cauer, '#00FF00')
 plt.legend(["Chebyshev Type I", "Elliptic (Cauer)"])
 plt.title("Filtered sine wave")
 # set a limit to see the difference
@@ -219,6 +218,7 @@ plt.xlim(0, 1500)
 
 plt.show()
 
+# %%
 ## 3 - Decimation
 def simple_downsampling(sig, M):
     out = sig[::M]
@@ -229,8 +229,12 @@ N=8000
 sinus1 = create_sine_wave(8500, 1000, fs, N)
 sinus2 = create_sine_wave(7500, 20, fs, N)
 
+# wave1 is from the microphone at angle 0 of device 1
 your_wave1 = wf.read(files[1])[1]
-your_wave2 = wf.read(files[13])[1]
+# wave11 is from the microphone at angle 30 of device 1
+your_wave11 = wf.read(files[2])[1]
+# wave2 is from the microphone at angle 0 of device 2
+your_wave2 = wf.read(files[12])[1]
 
 # call and test your function here #
 M = 3
@@ -260,8 +264,11 @@ def fftxcorr(in1, in2):
     
 # call and test your function here #
 # Verify your implementation, compare your output with that of the function fftconvolve when computing the auto-correlation of your sine wave signal. Remember that you need to counter the flip that convolution does on the second signal
-plt.plot(fftxcorr(your_wave1, your_wave2), 'b')
-plt.plot(sc.fftconvolve(your_wave1, np.flip(your_wave2)), 'orange')
+normalised_wave1 = normalise(your_wave1)
+normalised_wave11 = normalise(your_wave11)
+normalised_wave2 = normalise(your_wave2)
+plt.plot(fftxcorr(normalised_wave1, normalised_wave11), 'b')
+plt.plot(sc.fftconvolve(normalised_wave1, np.flip(normalised_wave11)), 'orange')
 plt.legend(["Your implementation", "sc.fftconvolve"])
 plt.show()
 
