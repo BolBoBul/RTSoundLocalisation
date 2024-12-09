@@ -10,6 +10,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def create_sine_wave(f, A, fs, N):
+    """Function to create a sine wave signal
+
+    Args:
+        f (int): Frequency of the sine wave
+        A (int): Amplitude of the sine wave
+        fs (int): Sampling frequency
+        N (int): Number of samples
+
+    Returns:
+        ndarray: Samples of the sine wave signal
+    """
     
     t = np.linspace(0, N/fs, N)
     out = A/2 * np.sin(2 * np.pi * f * t)
@@ -32,6 +43,14 @@ from glob import glob
 import scipy.io.wavfile as wf
 
 def read_wavefile(path):
+    """Function to read a wave file
+    
+    Args:
+        path (str): Path to the wave file
+        
+    Returns:
+        tuple: Tuple containing the sampling rate and the samples of the wave file
+    """
 
     out = wf.read(path)
 
@@ -55,7 +74,7 @@ from collections import deque
 
 # When the buffer is full, the oldest element is removed
 class RingBuffer:
-    """Class to create a ring buffer
+    """Ring buffer class
     """
     def __init__(self, max_length):
         self.max_length = max_length
@@ -68,8 +87,16 @@ class RingBuffer:
         return self.data
     
 def create_ringbuffer(maxlen):
+    """Function to create a ring RingBuffer
+
+    Args:
+        maxlen (int): Maximum length of the buffer
+
+    Returns:
+        RingBuffer: Ring buffer instance which is a deque
+    """
     
-    out = deque(maxlen=maxlen)
+    out = RingBuffer(maxlen)
 
     return out
 
@@ -84,7 +111,14 @@ for i, sample in enumerate(your_signal):
     your_buffer.append(sample)
     
 '''
-def display_buffer_after_X_seconds(fs, seconds, maxlen, signal):
+def display_buffer_after_X_seconds(buffer: RingBuffer, time, signal):
+    """Display the content of the buffer after a certain amount of time
+
+    Args:
+        ring_buffer (RingBuffer): Ring buffer instance
+        time (float): Time in seconds
+        signal (list): List of samples of the signal
+    """
     buffer = create_ringbuffer(maxlen)
     for i in range(min(len(signal), round(fs*seconds))):
         buffer.append(signal[i])
@@ -102,6 +136,15 @@ display_buffer_after_X_seconds(fs, 1, maxlen, your_wave)
 
 # %%
 def normalise(s):
+    """Normalise the signal between -1 and 1
+
+    Args:
+        s (ndarray): Signal to normalise
+
+    Returns:
+        ndarray: Normalised signal
+    """
+    
     # we divide the signal by its maximum value to get a signal between -1 and 1
     
     out = s / np.max(np.abs(s))
