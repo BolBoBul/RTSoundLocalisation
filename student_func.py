@@ -119,16 +119,23 @@ def display_buffer_after_X_seconds(buffer: RingBuffer, time, signal):
         time (float): Time in seconds
         signal (list): List of samples of the signal
     """
-    buffer = create_ringbuffer(maxlen)
-    for i in range(min(len(signal), round(fs*seconds))):
-        buffer.append(signal[i])
-    plt.title(f"Buffer after {seconds} seconds")
-    plt.xlabel("Samples")
-    plt.ylabel("Amplitude")
-    plt.plot(buffer)
+    
+    # we create a variable to store the index of the buffer
+    idx = 0
+    # we iterate over the samples of the signal
+    for i, sample in enumerate(signal):
+        # we append the sample to the buffer
+        buffer.append(sample)
+        # we check if the time has passed
+        if i/fs >= time:
+            idx = i
+            break
+    # we plot the content of the buffer
+    plt.plot(buffer.get())
+    plt.title(f"Buffer content after {time} seconds")
+    plt.show()
 
-display_buffer_after_X_seconds(fs, 1, maxlen, your_wave)
-
+display_buffer_after_X_seconds(RingBuffer(maxlen), 1.5, your_wave)
 
 # %% [markdown]
 # ### 1.3 Pre-processing
