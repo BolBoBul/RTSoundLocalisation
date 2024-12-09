@@ -54,6 +54,19 @@ plt.plot(your_wave)
 from collections import deque
 
 # When the buffer is full, the oldest element is removed
+class RingBuffer:
+    """Class to create a ring buffer
+    """
+    def __init__(self, max_length):
+        self.max_length = max_length
+        self.data = deque(maxlen=max_length)
+
+    def append(self, x):
+        self.data.append(x)
+
+    def get(self):
+        return self.data
+    
 def create_ringbuffer(maxlen):
     
     out = deque(maxlen=maxlen)
