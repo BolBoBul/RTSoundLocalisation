@@ -335,27 +335,61 @@ from scipy.optimize import root
 MICS = [{'x': 0, 'y': 0.0487}, {'x': 0.0425, 'y': -0.025}, {'x': -0.0425, 'y': -0.025}] 
 
 def equations(p, deltas):
+    """System of equations to solve the problem of localisation
+
+    Args:
+        p (tuple): coordinates of the source of the sound
+        deltas (list): list of the TDOA between the microphones
+
+    Returns:
+        tuple: system of equations
+    """
+    # speed of sound in m/s
     v = 343
+    # p is the coordinates of the source of the sound
     x, y = p
+    
+    # we calculate the angles between the microphones #0 & #1 and between the microphones #0 & #2
     alpha = np.arctan2((MICS[1]['y'] - MICS[0]['y']), (MICS[1]['x'] - MICS[0]['x']))
     beta = np.arctan2((MICS[2]['y'] - MICS[0]['y']), (MICS[2]['x'] - MICS[0]['x']))
     
+    # we create the system of equations to solve the problem of localisation
     eq1 = v*deltas[0] - (np.sqrt((MICS[1]['x'] - MICS[0]['x'])**2 + (MICS[1]['y'] - MICS[0]['y'])**2) * np.sqrt((x)**2 + (y)**2) * np.cos(alpha-np.arctan2(y, x)))
     eq2 = v*deltas[1] - (np.sqrt((MICS[2]['x'] - MICS[0]['x'])**2 + (MICS[2]['y'] - MICS[0]['y'])**2) * np.sqrt((x)**2 + (y)**2) * np.cos(beta-np.arctan2(y, x)))
     return (eq1, eq2)
     
 def localize_sound(deltas):
+    """Localize the source of the sound given the time differences of arrival (TDOA) between the microphones
+
+    Args:
+        deltas (list): list of the TDOA between the microphones
+
+    Returns:
+        tuple: x and y coordinates of the source
+    """
 
     sol = root(equations, [0, 0], (deltas), tol=10)
     return sol.x
 
 def source_angle(coordinates):
+    """Output the angle of the source from the x-axis in degrees
+
+    Args:
+        coordinates (tuples): x and y coordinates of the source
+
+    Returns:
+        float: angle in degrees
+    """
     
-    # your code here
+    out = np.arctan2(coordinates[1], coordinates[0]) * 180/np.pi
 
     return out
 
 # call and test your function here #
+deltas = list(map(TDOA, [fftxcorr(your_wave1, your_wave2), fftxcorr(your_wave1, your_wave1), fftxcorr(your_wave2, your_wave2)]))
+coordinates = localize_sound(deltas)
+print(f"Coordinates: {coordinates}")
+print(f"Angle: {round(source_angle(coordinates), 2)}°")
 
 # %% [markdown]
 # ### 1.6 System accuracy and speed
