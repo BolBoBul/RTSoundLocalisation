@@ -168,22 +168,21 @@ plt.show()
 # %%
 ## 1 - spectral analysis via spectrogram
 # The y-axis represents the frequency, the x-axis the time and the color the amplitude (in dB)
+your_signal1 = create_sine_wave(5500, 1000, fs, N)
+your_signal2 = create_sine_wave(7500, 1000, fs, N)
+your_other_signal = your_signal1 + your_signal2
 
 figure, axis = plt.subplots(1, 2)
-axis[0].specgram(x=your_signal, Fs=fs, NFFT=1024, noverlap=512, cmap="inferno")
+axis[0].specgram(x=your_other_signal, Fs=fs, NFFT=1024, noverlap=512, cmap="inferno")
 axis[0].set_title("Spectrogram of the generated sine wave")
 
 axis[1].specgram(x=your_wave, Fs=fs, NFFT=1024, noverlap=512, cmap="inferno")
 axis[1].set_title("Spectrogram of the one-clap sound")
+plt.colorbar(axis[1].get_children()[0], ax=axis[1])
 plt.show()
 
 # On voit que sur le spectogramme du clap, on a une fréquence maximale autour de 8000 Hz, on peut donc se dire qu'une $F_s$ de 16000 Hz est suffisante pour capturer les informations importantes de ce signal
 
-"""# the x-axis is normalised
-figure, axis = plt.subplots(2, 1)
-axis[0].specgram(x=your_wave, Fs=fs, NFFT=1024, noverlap=512, cmap="inferno")
-axis[1].plot(np.linspace(0, len(your_wave)/fs, len(your_wave)), your_wave)
-plt.show()"""
 
 ## 2 - Anti-aliasing filter synthesis
 # %%
