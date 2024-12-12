@@ -14,7 +14,7 @@ def create_sine_wave(f, A, fs, N):
 
     Args:
         f (int): Frequency of the sine wave
-        A (int): Amplitude of the sine wave
+        A (int): Amplitude peak-to-peak of the sine wave
         fs (int): Sampling frequency
         N (int): Number of samples
 
@@ -32,7 +32,6 @@ fs = 44100
 N = 8000
 freq = 20
 amplitude = 8
-
 
 your_signal = create_sine_wave(freq, amplitude, fs, N)
 plt.plot(your_signal)
@@ -101,7 +100,6 @@ def create_ringbuffer(maxlen):
     return out
 
 # call and test your function here #
-stride = 1
 maxlen = 750
 
 your_buffer = create_ringbuffer(maxlen)
@@ -168,7 +166,7 @@ plt.show()
 # %%
 ## 1 - spectral analysis via spectrogram
 # The y-axis represents the frequency, the x-axis the time and the color the amplitude (in dB)
-your_signal1 = create_sine_wave(5500, 1000, fs, N)
+your_signal1 = create_sine_wave(5500, 10, fs, N)
 your_signal2 = create_sine_wave(7500, 1000, fs, N)
 your_other_signal = your_signal1 + your_signal2
 
@@ -181,8 +179,9 @@ axis[1].set_title("Spectrogram of the one-clap sound")
 plt.colorbar(axis[1].get_children()[0], ax=axis[1])
 plt.show()
 
-# On voit que sur le spectogramme du clap, on a une fréquence maximale autour de 8000 Hz, on peut donc se dire qu'une $F_s$ de 16000 Hz est suffisante pour capturer les informations importantes de ce signal
 
+# Analyse du signal:
+# Sur le spectrogramme du clap, on voit qu'au-delà d'environ 8000Hz, l'intensité des fréquences est très faible, on peut donc se dire qu'une fréquence d'échantillonnage de 16000Hz est suffisante pour capturer les informations importantes de ce signal.
 
 ## 2 - Anti-aliasing filter synthesis
 # %%
@@ -203,11 +202,10 @@ def create_filter_cheby(wp, ws, gpass, gstop, fs):
         B, A: ndarray - Numerator and denominator coefficients of the filter.
     """
 
-    wp = wp/(fs/2)
-    ws = ws/(fs/2)
+
     
-    N, Wn = sc.cheb1ord(wp, ws, gpass, gstop, fs=fs)
-    B, A = sc.cheby1(N, gpass, Wn, btype='low', fs=fs)
+    N, Wn = sc.cheb2ord(wp, ws, gpass, gstop, fs=fs)
+    B, A = sc.cheby2(N, gstop, Wn, btype='low', fs=fs)
     
     return B, A
 
@@ -226,64 +224,57 @@ def create_filter_cauer(wp, ws, gpass, gstop, fs):
         B, A: ndarray - Numerator and denominator coefficients of the filter.
     """
     
-    wp = wp/(fs/2)
-    ws = ws/(fs/2)
-    
     N, Wn = sc.ellipord(wp, ws, gpass, gstop, fs=fs)
     B, A = sc.ellip(N, gpass, gstop, Wn, btype='low', fs=fs)
     
     return B, A
 
-sine1 = create_sine_wave(8500, 1000, fs, N)
-sine2 = create_sine_wave(7500, 20, fs, N)
+
+N=8000
+sine1 = create_sine_wave(8500, 1000, 44100, N)
+sine2 = create_sine_wave(7500, 20, 44100, N)
+main_signal = sine1 + sine2
 
 
 # call and test your function here #
-fs = 16000
-N = 8000
-wp = 7500
+fs = 24000
+wp = 8000
 ws = 8500
-gpass = 0.1
+gpass = 1
 gstop = 40
 
 # create a Chebyshev Type I low-pass filter
-B_cheby, A_cheby = create_filter_cheby(wp, ws, gpass, gstop, fs)
+B_cheby, A_cheby = create_filter_cheby(8000, 8500, 1, 40, fs=fs)
 # create an Elliptic (Cauer) low-pass filter
-B_cauer, A_cauer = create_filter_cauer(wp, ws, gpass, gstop, fs)
+B_cauer, A_cauer = create_filter_cauer(8000, 8500, 1, 40, fs=fs)
 
 # plot the frequency response of the filters
-w, h_cheby = sc.freqz(B_cheby, A_cheby)
-w, h_cauer = sc.freqz(B_cauer, A_cauer)
+w_cheby, h_cheby = sc.freqz(B_cheby, A_cheby, worN=2048, fs=fs)
+w_cauer, h_cauer = sc.freqz(B_cauer, A_cauer, worN=2048, fs=fs)
 
-"""plt.plot(w, 20 * np.log10(abs(h_cheby)), 'b')
-plt.plot(w, 20 * np.log10(abs(h_cauer)), 'r')
-plt.legend(["Chebyshev Type I", "Elliptic (Cauer)"])
-plt.title("Frequency response of the filters")
-plt.show()"""
+h_cheby = 20*np.log10(abs(h_cheby))
+h_cauer = 20*np.log10(abs(h_cauer))
 
-# apply the filters to the signals
-sine1_cheby = sc.lfilter(B_cheby, A_cheby, create_sine_wave(8500, 1000, fs, N))
-sine1_cauer = sc.lfilter(B_cauer, A_cauer, create_sine_wave(8500, 1000, fs, N))
-
-sine2_cheby = sc.lfilter(B_cheby, A_cheby, create_sine_wave(7500, 20, fs, N))
-sine2_cauer = sc.lfilter(B_cauer, A_cauer, create_sine_wave(7500, 20, fs, N))
-
-# plot the filtered signals
-plt.plot(sine1_cheby, '#0000FF')
-plt.plot(sine1_cauer, '#00FF00')
-plt.legend(["Chebyshev Type I", "Elliptic (Cauer)"])
-plt.title("Filtered sine wave")
-# set a limit to see the difference
-plt.ylim(-0.5, 0.5)
-plt.xlim(0, 1500)
-
-
+decimated_signal = main_signal[::3]
+# we plot the sine signals filtered by the Chebyshev filter
+plt.plot(sc.lfilter(B_cheby, A_cheby, decimated_signal), 'b')
 plt.show()
+
 
 # %%
 ## 3 - Decimation
-def simple_downsampling(sig, M):
-    out = sig[::M]
+def downsampling(sig,B, A, M):
+    """Decimate a signal by keeping one sample every M samples
+
+    Args:
+        sig (ndaray): Signal to decimate
+        M (int): factor of decimation
+
+    Returns:
+        ndarray: Decimated signal
+    """
+    filtered_sig = sc.lfilter(B, A, sig)
+    out = filtered_sig[::M]
     return out
 
 fs=16000
@@ -299,7 +290,7 @@ your_wave11 = wf.read(files[2])[1]
 your_wave2 = wf.read(files[12])[1]
 
 # call and test your function here #
-M = 3
+M = 10
 signal = sinus1 + sinus2
 downsampled_signal = simple_downsampling(signal, M)
 
@@ -318,10 +309,24 @@ import scipy.signal as sc
 import numpy as np
 
 def fftxcorr(in1, in2):
-    # use np.fft.fft to compute the Fourier Transform of the input signals
+    """Cross-correlation of two signals using the Fourier Transform
+    
+    Args:
+        in1 (ndarray): First input signal
+        in2 (ndarray): Second input signal
+        
+    Returns:
+        ndarray: Cross-correlation of the two signals
+    """
+    input1 = np.asarray(in1)
+    input2 = np.asarray(in2)
+    input1 = np.append(input1, np.zeros(len(in2)))
+    input2 = np.append(np.zeros(len(in1)), input2)
+    out = np.fft.ifft(np.fft.fft(input1) * np.conj(np.fft.fft(input2))).real
+    
+    # we use np.fft.fft to compute the Fourier Transform of the input signals
     # we apply the inverse Fourier Transform (np.fft.ifft) to the product of the Fourier Transform of in1 and the complex conjugate (np.conj) of the Fourier Transform of in2
-    out = np.fft.ifft(np.fft.fft(in1) * np.conj(np.fft.fft(in2)))
-
+    
     return out
     
 # call and test your function here #
@@ -329,10 +334,25 @@ def fftxcorr(in1, in2):
 normalised_wave1 = normalise(your_wave1)
 normalised_wave11 = normalise(your_wave11)
 normalised_wave2 = normalise(your_wave2)
-plt.plot(fftxcorr(normalised_wave1, normalised_wave11), 'b')
-plt.plot(sc.fftconvolve(normalised_wave1, np.flip(normalised_wave11)), 'orange')
-plt.legend(["Your implementation", "sc.fftconvolve"])
+
+# if the shape of the 2 signals is not the same, we pad the smallest signal with zeros
+def pad_signal(signal1, signal2):
+    if len(signal1) > len(signal2):
+        signal2 = np.pad(signal2, (0, len(signal1)-len(signal2)), 'constant')
+    else:
+        signal1 = np.pad(signal1, (0, len(signal2)-len(signal1)), 'constant')
+    return signal1, signal2
+
+normalised_wave1, normalised_wave2 = pad_signal(normalised_wave1, normalised_wave2)
+
+your_signal3 = create_sine_wave(21, 4, 44100, 8000)
+your_signal4 = create_sine_wave(21, 4, 44100, 8000)
+
+plt.plot(fftxcorr(your_signal3, your_signal4), 'b')
+plt.plot(sc.fftconvolve(your_signal3, your_signal4[::-1]), 'orange')
 plt.show()
+
+# we see that the blue graph is the same as the orange one but shifted by half of the length of the signal. Also, the fact that the blue graph has its highest value at the middle of the signal is normal since the signal is the same as the input signal
 
 # %% [markdown]
 # ### 1.5 Localisation
@@ -341,16 +361,14 @@ plt.show()
 # %%
 def TDOA(xcorr):
     
-    # your code here #
     # One way to measure the time-shift is to find the index of the maximum value of the  ross-correlation
-    maxIdx = np.argmax(xcorr)
     # we know that the delay between the two signals reception is the difference between the index of the maximum value and the middle of the cross-correlation
-    out = maxIdx - len(xcorr)//2
+    out = np.where(xcorr == np.max(xcorr))[0][0] - len(xcorr)//2
     
     return out
 
 # call and test your function here #
-print(f"{TDOA(fftxcorr(normalised_wave1, normalised_wave2))} samples of delay between the two signals") 
+print(f"{TDOA(fftxcorr(your_signal1, your_signal1))}") 
 
 # %%
 beforeProcess = {}
@@ -442,16 +460,26 @@ def source_angle(coordinates):
     Returns:
         float: angle in degrees
     """
+    import math
     
-    out = np.arctan2(coordinates[1], coordinates[0]) * 180/np.pi
+    unit_vector_src = np.array(coordinates)/np.linalg.norm(coordinates)
+    unit_vector_x_axis = [1,0] / np.linalg.norm([1,0])
+    dot_product = np.dot(unit_vector_src, unit_vector_x_axis)
+    out = math.degrees(np.arccos(dot_product))
+    
+    if coordinates[1] < 0:
+        out = 360 - out
 
     return out
 
 # call and test your function here #
-deltas = list(map(TDOA, [fftxcorr(your_wave1, your_wave2), fftxcorr(your_wave1, your_wave1), fftxcorr(your_wave2, your_wave2)]))
+your_wave1, your_wave11 = pad_signal(your_wave1, your_wave11)
+
+deltas = list(map(TDOA, [fftxcorr(your_wave1, your_wave11), fftxcorr(your_wave1, your_wave1), fftxcorr(your_wave11, your_wave11)]))
 coordinates = localize_sound(deltas)
 print(f"Coordinates: {coordinates}")
 print(f"Angle: {round(source_angle(coordinates), 2)}°")
+
 
 # %% [markdown]
 # ### 1.6 System accuracy and speed
@@ -461,17 +489,62 @@ print(f"Angle: {round(source_angle(coordinates), 2)}°")
 def accuracy(pred_angle, gt_angle, threshold):
     
     # your code here #
+    
+    out = min(abs(pred_angle - gt_angle), 360 - abs(pred_angle - gt_angle)) < threshold
 
     return out
 
 ## 1.6.2
 possible_angle = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
+            
+locate_claps = "resources/LocateClaps/"
+files = glob(f"{locate_claps}/*.wav")
+B, A = create_filter_cauer(8000, 8500, 1, 40, fs=44100)
+threshold = 11
 for angle in possible_angle:
+    m1_wavfile = []
+    m2_wavfile = []
+    m3_wavfile = []
     for f in files:
         if f'_{angle}.' in f:
-            mic = f.split('/')[-1].split('_')[0] #if '/' does not work, use "\\" (windows notation)
-            
-# call and test your function here #
+            mic = f.split('/')[-1].split('_')[0]
+            if mic == 'M1':
+                m1_wavfile = read_wavefile(f)[1]
+            elif mic == 'M2':
+                m2_wavfile = read_wavefile(f)[1]
+            elif mic == 'M3':
+                m3_wavfile = read_wavefile(f)[1]
+            else:
+                print("Error")
+                break
+                
+    # Preprocess
+    m1_wavfile = normalise(m1_wavfile)
+    m2_wavfile = normalise(m2_wavfile)
+    m3_wavfile = normalise(m3_wavfile)
+    
+    #Downsampling
+    wp=16000/2
+    ws = wp + 1000
+    gpass = 1
+    gstop = 40
+    M = 3
+    m1_wavfile = downsampling(m1_wavfile, B, A, M)
+    m2_wavfile = downsampling(m2_wavfile, B, A, M)
+    m3_wavfile = downsampling(m3_wavfile, B, A, M)
+    #X-correlation
+    m12_xcorr = fftxcorr(m1_wavfile, m2_wavfile)
+    m13_xcorr = fftxcorr(m1_wavfile, m3_wavfile)
+    # localisation
+    m12_time_shift_value = TDOA(m12_xcorr)/16000
+    m13_time_shift_value = TDOA(m13_xcorr)/16000
+    
+    # Equations systems
+    coords_system = localize_sound([m12_time_shift_value, m13_time_shift_value])
+    pred_angle = source_angle(coords_system)
+    print(f'Angle: {angle}°, Prediction: {pred_angle}°, Accuracy: {accuracy(pred_angle, angle, threshold)}')
+
+
 
 ## 1.6.3
 from time import time_ns, sleep
@@ -489,6 +562,13 @@ def time_delay(func, args):
 product = time_delay(func_example, [2, 10])
 
 # call and test your previous functions here #
+signal_test = read_wavefile(files[0])[1]
+signal_test_norm = time_delay(normalise, [signal_test])
+signal_test_down = time_delay(downsampling, [signal_test_norm, B, A, 3])
+signal_test_xcorr = time_delay(fftxcorr, [signal_test_down, signal_test_down])
+signal_test_tdoa = time_delay(TDOA, [signal_test_xcorr])
+signal_test_localisation = time_delay(localize_sound, [[signal_test_tdoa, signal_test_tdoa]])
+signal_test_angle = time_delay(source_angle, [signal_test_localisation])
 
 # %% [markdown]
 # ## 2 Real-time localisation
