@@ -268,7 +268,9 @@ def downsampling(sig,B, A, M):
 
     Args:
         sig (ndaray): Signal to decimate
-        M (int): factor of decimation
+        B (ndarray): Numerator coefficients of the filter
+        A (ndarray): Denominator coefficients of the filter
+        M (int): Downsampling factor
 
     Returns:
         ndarray: Decimated signal
@@ -292,7 +294,7 @@ your_wave2 = wf.read(files[12])[1]
 # call and test your function here #
 M = 10
 signal = sinus1 + sinus2
-downsampled_signal = simple_downsampling(signal, M)
+downsampled_signal = downsampling(signal, B_cheby, A_cheby, M)
 
 plt.plot(signal, 'orange')
 # we stretch the signal to see the difference
@@ -328,22 +330,6 @@ def fftxcorr(in1, in2):
     # we apply the inverse Fourier Transform (np.fft.ifft) to the product of the Fourier Transform of in1 and the complex conjugate (np.conj) of the Fourier Transform of in2
     
     return out
-    
-# call and test your function here #
-# Verify your implementation, compare your output with that of the function fftconvolve when computing the auto-correlation of your sine wave signal. Remember that you need to counter the flip that convolution does on the second signal
-normalised_wave1 = normalise(your_wave1)
-normalised_wave11 = normalise(your_wave11)
-normalised_wave2 = normalise(your_wave2)
-
-# if the shape of the 2 signals is not the same, we pad the smallest signal with zeros
-def pad_signal(signal1, signal2):
-    if len(signal1) > len(signal2):
-        signal2 = np.pad(signal2, (0, len(signal1)-len(signal2)), 'constant')
-    else:
-        signal1 = np.pad(signal1, (0, len(signal2)-len(signal1)), 'constant')
-    return signal1, signal2
-
-normalised_wave1, normalised_wave2 = pad_signal(normalised_wave1, normalised_wave2)
 
 your_signal3 = create_sine_wave(21, 4, 44100, 8000)
 your_signal4 = create_sine_wave(21, 4, 44100, 8000)
@@ -369,40 +355,6 @@ def TDOA(xcorr):
 
 # call and test your function here #
 print(f"{TDOA(fftxcorr(your_signal1, your_signal1))}") 
-
-# %%
-beforeProcess = {}
-afterProcess = {}
-
-def process_sample(sample):
-    # we find the first sample where the amplitude is higher than 3000
-    start = np.argmax(sample > 3000)
-    # we find the last sample where the amplitude is higher than 3000
-    end = len(sample) - np.argmax(sample[::-1] > 1000)
-    # we keep only the samples between start and end
-    out = sample[start-100:end]
-    return out
-
-for f in files:
-    beforeProcess[f] = wf.read(f)[1]
-    afterProcess[f] = process_sample(beforeProcess[f])
-    
-# find the longest signal among the processed signals
-maxlen = 0
-for f in afterProcess:
-    if len(afterProcess[f]) > maxlen:
-        maxlen = len(afterProcess[f])        
-
-# we pad the signals with zeros to have the same length
-for f in afterProcess:
-    afterProcess[f] = np.pad(afterProcess[f], (0, maxlen-len(afterProcess[f])), 'constant')
-        
-# call and test your function here #
-your_wave1 = afterProcess[files[4]]
-your_wave2 = afterProcess[files[23]]
-
-
-
 
 
 # %% [markdown]
@@ -473,9 +425,8 @@ def source_angle(coordinates):
     return out
 
 # call and test your function here #
-your_wave1, your_wave11 = pad_signal(your_wave1, your_wave11)
 
-deltas = list(map(TDOA, [fftxcorr(your_wave1, your_wave11), fftxcorr(your_wave1, your_wave1), fftxcorr(your_wave11, your_wave11)]))
+deltas = list(map(TDOA, [fftxcorr(your_wave1, your_wave2), fftxcorr(your_wave1, your_wave1), fftxcorr(your_wave11, your_wave11)]))
 coordinates = localize_sound(deltas)
 print(f"Coordinates: {coordinates}")
 print(f"Angle: {round(source_angle(coordinates), 2)}°")
@@ -507,7 +458,7 @@ for angle in possible_angle:
     m3_wavfile = []
     for f in files:
         if f'_{angle}.' in f:
-            mic = f.split('/')[-1].split('_')[0]
+            mic = f.split('\\')[-1].split('_')[0]
             if mic == 'M1':
                 m1_wavfile = read_wavefile(f)[1]
             elif mic == 'M2':
@@ -541,8 +492,10 @@ for angle in possible_angle:
     
     # Equations systems
     coords_system = localize_sound([m12_time_shift_value, m13_time_shift_value])
+    print(f"S: {coords_system}")
     pred_angle = source_angle(coords_system)
     print(f'Angle: {angle}°, Prediction: {pred_angle}°, Accuracy: {accuracy(pred_angle, angle, threshold)}')
+    print('\n')
 
 
 
