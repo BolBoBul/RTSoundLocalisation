@@ -34,6 +34,10 @@ freq = 20
 amplitude = 8
 
 your_signal = create_sine_wave(freq, amplitude, fs, N)
+plt.title("Sinusoidal signal")
+plt.grid()
+plt.xlabel("Samples")
+plt.ylabel("Amplitude [V]")
 plt.plot(your_signal)
 
 
@@ -59,11 +63,15 @@ def read_wavefile(path):
 LocateClaps = "resources/LocateClaps/"
 files = glob(f"{LocateClaps}/*.wav")
 # select the ith file
-i = 10
+i = 1
 # the second part of the array represents the value and the first element is the sampling rate
 your_wave = read_wavefile(files[i])[1]
-plt.title(f"One-clap sound #{i}")
-plt.plot(your_wave)
+plt.title(f"LocateClaps/M1_30.wav")
+plt.grid()
+time = np.linspace(0, len(your_wave)/fs, len(your_wave))
+plt.xlabel("Time [s]")
+plt.ylabel("Amplitude")
+plt.plot(time, your_wave)
 
 # %% [markdown]
 # ### 1.2 Buffering
@@ -131,9 +139,12 @@ def display_buffer_after_X_seconds(buffer: RingBuffer, time, signal):
     # we plot the content of the buffer
     plt.plot(buffer.get())
     plt.title(f"Buffer content after {time} seconds")
+    plt.grid()
+    plt.xlabel("Samples")
+    plt.ylabel("Amplitude")
     plt.show()
 
-display_buffer_after_X_seconds(RingBuffer(maxlen), 1.5, your_wave)
+display_buffer_after_X_seconds(RingBuffer(maxlen), 0.15, your_signal)
 
 # %% [markdown]
 # ### 1.3 Pre-processing
@@ -157,7 +168,13 @@ def normalise(s):
     return out
 
 # call and test your function here #
-plt.plot(normalise(your_wave), 'b')
+plt.plot(normalise(your_signal), 'b')
+plt.plot(your_signal, 'orange')
+plt.grid()
+plt.title("Original vs. Normalised sine wave signal")
+plt.xlabel("Samples")
+plt.ylabel("Amplitude")
+plt.legend(["Normalised signal", "Original signal"])
 plt.show()
 
 # %% [markdown]
@@ -170,13 +187,19 @@ your_signal1 = create_sine_wave(5500, 10, fs, N)
 your_signal2 = create_sine_wave(7500, 1000, fs, N)
 your_other_signal = your_signal1 + your_signal2
 
-figure, axis = plt.subplots(1, 2)
+""" figure, axis = plt.subplots(1, 2)
 axis[0].specgram(x=your_other_signal, Fs=fs, NFFT=1024, noverlap=512, cmap="inferno")
 axis[0].set_title("Spectrogram of the generated sine wave")
+axis[0].set_xlabel("Time [s]")
+axis[0].set_ylabel("Frequency [Hz]") """
 
-axis[1].specgram(x=your_wave, Fs=fs, NFFT=1024, noverlap=512, cmap="inferno")
-axis[1].set_title("Spectrogram of the one-clap sound")
-plt.colorbar(axis[1].get_children()[0], ax=axis[1])
+
+plt.specgram(x=your_wave, Fs=fs, NFFT=128, noverlap=64, cmap="inferno")
+plt.title("Spectrogram for LocateClaps/M1_30.wav")
+plt.xlabel("Time [s]")
+plt.ylabel("Frequency [Hz]")
+plt.colorbar(ax=plt.gca(), label="Intensity [dB]")
+#plt.ylim(0, 10000)
 plt.show()
 
 
@@ -237,16 +260,16 @@ main_signal = sine1 + sine2
 
 
 # call and test your function here #
-fs = 24000
+fs = 44100
 wp = 8000
 ws = 8500
 gpass = 1
 gstop = 40
 
 # create a Chebyshev Type I low-pass filter
-B_cheby, A_cheby = create_filter_cheby(8000, 8500, 1, 40, fs=fs)
+B_cheby, A_cheby = create_filter_cheby(wp, ws, gpass, gstop, fs=fs)
 # create an Elliptic (Cauer) low-pass filter
-B_cauer, A_cauer = create_filter_cauer(8000, 8500, 1, 40, fs=fs)
+B_cauer, A_cauer = create_filter_cauer(wp, ws, gpass, gstop, fs=fs)
 
 # plot the frequency response of the filters
 w_cheby, h_cheby = sc.freqz(B_cheby, A_cheby, worN=2048, fs=fs)
@@ -256,8 +279,41 @@ h_cheby = 20*np.log10(abs(h_cheby))
 h_cauer = 20*np.log10(abs(h_cauer))
 
 decimated_signal = main_signal[::3]
-# we plot the sine signals filtered by the Chebyshev filter
-plt.plot(sc.lfilter(B_cheby, A_cheby, decimated_signal), 'b')
+
+# we make a (1,3) subplot where we plot the main signal, the Chebyshev filter and the Cauer filter
+
+fig, ax = plt.subplots(3, 1, figsize=(7, 7))
+ax[0].plot(main_signal)
+ax[0].set_title("Main signal")
+ax[0].set_xlabel("Samples")
+ax[0].set_ylabel("Amplitude")
+ax[0].grid()
+
+ax[1].plot(w_cheby, h_cheby, 'r')
+ax[1].set_title("Chebychev filter")
+ax[1].set_xlabel("Frequency [Hz]")
+ax[1].set_ylabel("Gain [dB]")
+ax[1].set_xlim(5000, fs/2+1000)
+ax[1].grid()
+
+ax[2].plot(w_cauer, h_cauer, 'orange')
+ax[2].set_title("Cauer filter")
+ax[2].set_xlabel("Frequency [Hz]")
+ax[2].set_ylabel("Gain [dB]")
+ax[2].set_xlim(5000, fs/2+1000)
+ax[2].grid()
+
+plt.subplots_adjust(hspace=0.75)
+plt.show()
+
+plt.plot(w_cheby, h_cheby, 'b')
+plt.plot(w_cauer, h_cauer, 'orange')
+plt.title("Frequency response of the Chebyshev and Cauer filters")
+plt.xlabel("Frequency [Hz]")
+plt.ylabel("Gain [dB]")
+plt.xlim(5000, fs/2+1000)
+plt.legend(["Chebyshev filter", "Cauer filter"])
+plt.grid()
 plt.show()
 
 
@@ -284,15 +340,11 @@ N=8000
 sinus1 = create_sine_wave(8500, 1000, fs, N)
 sinus2 = create_sine_wave(7500, 20, fs, N)
 
-# wave1 is from the microphone at angle 0 of device 1
+# wave1 is from the microphone at angle 30 of device 1
 your_wave1 = wf.read(files[1])[1]
-# wave11 is from the microphone at angle 30 of device 1
-your_wave11 = wf.read(files[2])[1]
-# wave2 is from the microphone at angle 0 of device 2
-your_wave2 = wf.read(files[12])[1]
 
 # call and test your function here #
-M = 10
+M = 3
 signal = sinus1 + sinus2
 downsampled_signal = downsampling(signal, B_cheby, A_cheby, M)
 
@@ -300,6 +352,10 @@ plt.plot(signal, 'orange')
 # we stretch the signal to see the difference
 plt.plot(np.linspace(0, len(signal), len(downsampled_signal)), downsampled_signal, 'b')
 plt.legend(["Original signal", "Downsampled signal"])
+plt.title("Original vs. Downsampled signal")
+plt.xlabel("Samples")
+plt.ylabel("Amplitude")
+plt.grid()
 
 
 # %% [markdown]
